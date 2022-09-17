@@ -11,8 +11,7 @@ type UseCases struct {
 
 func NewUseCases(repo storage.Repository, done chan struct{}, asAdr string) *UseCases {
 	return &UseCases{
-		User: UserUseCase{repo: repo},
-		//Order: OrderUseCase{repo: repo},
+		User:  UserUseCase{repo: repo},
 		Order: NewOrderUseCase(repo, done, asAdr),
 	}
 }
