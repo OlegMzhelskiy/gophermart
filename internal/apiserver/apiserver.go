@@ -156,7 +156,6 @@ func (s *APIServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
 	s.respondGeneratedToken(w, r, user)
 }
 
@@ -194,8 +193,8 @@ func (s *APIServer) respondGeneratedToken(w http.ResponseWriter, r *http.Request
 		s.error(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	respToken := map[string]string{"token": token}
-	s.respond(w, r, http.StatusOK, respToken)
+	//respToken := map[string]string{"token": token}
+	s.respond(w, r, http.StatusOK, token)
 }
 
 //middleware for auth user
