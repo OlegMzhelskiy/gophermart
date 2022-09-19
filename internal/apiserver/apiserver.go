@@ -194,7 +194,7 @@ func (s *APIServer) respondGeneratedToken(w http.ResponseWriter, r *http.Request
 		s.error(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	//respToken := map[string]string{"accessToken": token}
+	w.Header().Set("Authorization", token)
 	respToken := map[string]string{"token": token}
 	s.respond(w, r, http.StatusOK, respToken)
 }
