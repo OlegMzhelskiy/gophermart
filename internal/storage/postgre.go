@@ -3,18 +3,18 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"github.com/OlegMzhelskiy/gophermart/internal/models"
-	"github.com/lib/pq"
-	_ "github.com/lib/pq"
+	"fmt"
 	"strings"
 	"time"
 
-	//_ "github.com/jackc/pgx"
+	"github.com/lib/pq"
+	//_ "github.com/lib/pq"
 	//_ "github.com/jackc/pgx"
 	"github.com/jmoiron/sqlx"
 	//"database/sql"
-	"fmt"
 	"github.com/jackc/pgerrcode"
+
+	"github.com/OlegMzhelskiy/gophermart/internal/models"
 )
 
 //type Config struct {
