@@ -118,10 +118,11 @@ func (s *APIServer) respondJSON(w http.ResponseWriter, r *http.Request, code int
 }
 
 func (s *APIServer) respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
-	w.WriteHeader(code)
 	if data != nil {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		json.NewEncoder(w).Encode(data)
 	}
+	w.WriteHeader(code)
 }
 
 func (s *APIServer) error(w http.ResponseWriter, r *http.Request, code int, err error) {
