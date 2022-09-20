@@ -278,7 +278,7 @@ func (s *APIServer) GetOrderList(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.error(w, r, http.StatusInternalServerError, fmt.Errorf("get list order failed: %w", err))
 	} else if len(list) == 0 {
-		s.respond(w, r, http.StatusNoContent, nil)
+		s.respond(w, r, http.StatusNoContent, list)
 	} else {
 		s.respondJSON(w, r, http.StatusOK, list)
 	}
