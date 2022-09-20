@@ -254,10 +254,10 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 		UploadedAt: time.Now(),
 	}
 	if err := s.useCase.Order.UploadOrder(order); err != nil {
-		if errors.Is(err, usecase.ErrOrderAlreadyUploadThisUser) {
-			s.error(w, r, http.StatusOK, err)
-		} else if errors.Is(err, usecase.ErrOrderAlreadyUploadAnotherUser) {
+		if errors.Is(err, usecase.ErrOrderAlreadyUploadAnotherUser) {
 			s.error(w, r, http.StatusConflict, err)
+		} else if errors.Is(err, usecase.ErrOrderAlreadyUploadThisUser) {
+			s.error(w, r, http.StatusOK, err)
 		} else if errors.Is(err, usecase.ErrInvalidOrderNumber) {
 			s.error(w, r, http.StatusUnprocessableEntity, err)
 		} else {
