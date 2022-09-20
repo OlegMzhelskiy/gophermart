@@ -209,12 +209,14 @@ func (s *APIServer) authenticateUser(next http.Handler) http.Handler {
 			s.error(w, r, http.StatusUnauthorized, errors.New("auth header is empty"))
 			return
 		}
-		ms := strings.Split(auth, " ")
-		if len(ms) != 2 || (len(ms) == 2 && (ms[0] != "Bearer" || ms[1] == "")) {
-			s.error(w, r, http.StatusUnauthorized, errors.New("invalid auth header"))
-			return
-		}
-		valid, claims, err := s.useCase.User.ParseToken(ms[1])
+		//ms := strings.Split(auth, " ")
+		//if len(ms) != 2 || (len(ms) == 2 && (ms[0] != "Bearer" || ms[1] == "")) {
+		//	s.error(w, r, http.StatusUnauthorized, errors.New("invalid auth header"))
+		//	return
+		//}
+		//token := ms[1]
+		token := strings.Replace(auth, "Bearer ", "", 1)
+		valid, claims, err := s.useCase.User.ParseToken(token)
 		if err != nil {
 			s.error(w, r, http.StatusUnauthorized, fmt.Errorf("parse token failed: %w", err))
 			return
