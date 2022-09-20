@@ -28,22 +28,23 @@ func (u OrderUseCase) UploadOrder(order models.Order) error {
 	//if order.Number == "" || !checkLuna(order.Number) {
 	//	return ErrInvalidOrderNumber
 	//}
-	orderDB, err := u.repo.GetOrderByNumber(order.Number)
+	_, err := u.repo.GetOrderByNumber(order.Number)
+	//orderDB, err := u.repo.GetOrderByNumber(order.Number)
 	if err != nil && err != storage.ErrOrderNotFound {
 		return fmt.Errorf("get order by number failed: %w", err)
 	}
-	if err == storage.ErrOrderNotFound {
-		err := u.repo.CreateOrder(order)
-		if err != nil {
-			return fmt.Errorf("create order failed: %w", err)
-		}
-		return nil
+	//if err == storage.ErrOrderNotFound {
+	err = u.repo.CreateOrder(order)
+	if err != nil {
+		return fmt.Errorf("create order failed: %w", err)
 	}
-	if orderDB.UserID == order.UserID {
-		return ErrOrderAlreadyUploadThisUser
-	} else {
-		return ErrOrderAlreadyUploadAnotherUser
-	}
+	return nil
+	//}
+	//if orderDB.UserID == order.UserID {
+	//	return ErrOrderAlreadyUploadThisUser
+	//} else {
+	//	return ErrOrderAlreadyUploadAnotherUser
+	//}
 }
 
 func (u OrderUseCase) GetOrderList(userID string) ([]models.Order, error) {
