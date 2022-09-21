@@ -5,19 +5,28 @@ import (
 	"time"
 )
 
+type OrderStatus string
+
 const (
-	OrderStatusNew        = "NEW"
-	OrderStatusProcessing = "PROCESSING"
-	OrderStatusInvalid    = "INVALID"
-	OrderStatusProcessed  = "PROCESSED"
+	OrderStatusNew               OrderStatus = "NEW"
+	OrderStatusProcessing        OrderStatus = "PROCESSING"
+	OrderStatusInvalid           OrderStatus = "INVALID"
+	OrderStatusProcessed         OrderStatus = "PROCESSED"
+	OrderAccrualStatusRegistered             = "REGISTERED"
+	OrderAccrualStatusProcessing             = "PROCESSING"
+	OrderAccrualStatusInvalid                = "INVALID"
+	OrderAccrualStatusProcessed              = "PROCESSED"
 )
 
+type OrderNumber string
+
 type Order struct {
-	Number     string    `json:"number" db:"number"`
-	Status     string    `json:"status" db:"status"`
-	Accrual    float64   `json:"accrual,omitempty" db:"sum"`
-	UploadedAt time.Time `json:"uploaded_at" db:"uploaded_at"`
-	UserID     string    `json:"-" db:"user_id"`
+	Number     OrderNumber `json:"number" db:"number"`
+	Status     OrderStatus `json:"status" db:"status"`
+	Accrual    SumScore    `json:"accrual,omitempty" db:"sum"`
+	UserID     string      `json:"-" db:"user_id"`
+	UploadedAt time.Time   `json:"uploaded_at" db:"uploaded_at"`
+	UpdatedAt  time.Time   `json:"-" db:"updated_at"`
 }
 
 func (o Order) MarshalJSON() ([]byte, error) {
@@ -41,4 +50,10 @@ type OrderWithdraw struct {
 type WithdrawRequest struct {
 	OrderNumber string   `json:"order"`
 	Sum         SumScore `json:"sum"`
+}
+
+type AccrualRequest struct {
+	Order  string   `json:"order"`
+	Status string   `json:"status"`
+	Sum    SumScore `json:"accrual"`
 }

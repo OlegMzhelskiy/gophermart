@@ -46,6 +46,7 @@ func run() error {
 	if err := srv.Run(); err != nil {
 		return fmt.Errorf("http-server failed: %w", err)
 	}
+	srv.Stop()
 	return nil
 }
 

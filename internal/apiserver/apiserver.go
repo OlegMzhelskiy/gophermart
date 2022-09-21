@@ -32,15 +32,21 @@ type APIServer struct {
 	router  *chi.Mux
 	useCase usecase.UseCases
 	//store   storage.Repository
+	done chan struct{}
 }
 
 func NewServer(cfg Config) *APIServer {
-	uc := usecase.NewUseCases(cfg.Store)
+	done := make(chan struct{})
+	uc := usecase.NewUseCases(cfg.Store, done, cfg.AcSysAddr)
 	srv := &APIServer{
 		addr:    cfg.Addr,
 		useCase: *uc,
+		done:    done,
 	}
 	srv.configureRouter()
+
+	//uc.Order.RunWorkerGettingOrderStatus()
+
 	return srv
 }
 
@@ -56,6 +62,12 @@ func (s *APIServer) Run() error {
 	//defer s.store.Close()
 
 	return http.ListenAndServe(s.addr, s.router)
+}
+
+func (s *APIServer) Stop() {
+	close(s.done)
+	s.useCase.CloseRepo()
+	time.Sleep(2 * time.Second)
 }
 
 func (s *APIServer) ConfigurateServer() error {
@@ -254,7 +266,7 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	order := models.Order{
 		UserID:     userID,
-		Number:     string(body),
+		Number:     models.OrderNumber(body),
 		UploadedAt: time.Now(),
 	}
 	if err := s.useCase.Order.UploadOrder(order); err != nil {

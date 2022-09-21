@@ -63,7 +63,8 @@ func newStore(databaseURL string) (*Store, error) {
 	    status VARCHAR(25),
 	    sum NUMERIC DEFAULT 0,
 	    user_id INTEGER NOT NULL,
-	    uploaded_at TIMESTAMPTZ);
+	    uploaded_at TIMESTAMPTZ,
+	    updated_at TIMESTAMPTZ);
 	CREATE TABLE IF NOT EXISTS withdrawals(
 	    order_number TEXT PRIMARY KEY NOT NULL,
 	    sum NUMERIC DEFAULT 0,
@@ -180,7 +181,7 @@ func (s *Store) GetUserByLogin(login string) (models.User, error) {
 	return user, nil
 }
 
-func (s *Store) GetOrderByNumber(number string) (models.Order, error) {
+func (s *Store) GetOrderByNumber(number models.OrderNumber) (models.Order, error) {
 	order := models.Order{}
 	err := s.db.Get(&order, "SELECT * FROM orders WHERE number=$1", number)
 	if err != nil {
@@ -203,7 +204,7 @@ func (s *Store) CreateOrder(order models.Order) error {
 
 func (s *Store) GetOrderListByUserID(userID string) ([]models.Order, error) {
 	orderList := []models.Order{}
-	err := s.db.Select(&orderList, "SELECT * FROM orders WHERE user_id=$1 ORDER BY uploaded_at ASC", userID)
+	err := s.db.Select(&orderList, "SELECT user_id, number, status, sum, uploaded_at FROM orders WHERE user_id=$1 ORDER BY uploaded_at ASC", userID)
 	if err != nil && err != sql.ErrNoRows {
 		return orderList, err
 	} else {
@@ -269,6 +270,39 @@ func (s *Store) CreateWithdraw(userID string, withdraw models.WithdrawRequest) e
 		if errPq, ok := err.(*pq.Error); ok && errPq.Code == "23505" {
 			return ErrWithdrawAlreadyExist //err.Code.Name()
 		}
+		return err
+	}
+	return nil
+}
+
+func (s *Store) GetOrdersWithStatus(status ...models.OrderStatus) ([]models.OrderNumber, error) {
+	orderNumbers := []models.OrderNumber{}
+	if len(status) == 0 {
+		return orderNumbers, errors.New("there is no status")
+	}
+	// join condition
+	var str string
+	strStat := make([]string, 0, len(status))
+	for _, v := range status {
+		strStat = append(strStat, fmt.Sprintf("status='%s'", v))
+	}
+	if len(status) >= 1 {
+		str = strings.Join(strStat, " OR ")
+	} else {
+		str = strStat[0]
+	}
+	err := s.db.Select(&orderNumbers,
+		fmt.Sprintf("SELECT number FROM orders WHERE %s ORDER BY uploaded_at ASC", str))
+	if err != nil && err != sql.ErrNoRows {
+		return orderNumbers, err
+	}
+	return orderNumbers, nil
+}
+
+func (s *Store) UpdateOrder(ord models.Order) error {
+	_, err := s.db.Exec("UPDATE orders SET status=$1, sum=$2, updated_at=$3 WHERE number=$4",
+		ord.Status, ord.Accrual, time.Now(), ord.Number)
+	if err != nil {
 		return err
 	}
 	return nil

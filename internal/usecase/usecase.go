@@ -9,14 +9,15 @@ type UseCases struct {
 	Order OrderUseCase
 }
 
-func NewUseCases(repo storage.Repository) *UseCases {
+func NewUseCases(repo storage.Repository, done chan struct{}, asAdr string) *UseCases {
 	return &UseCases{
-		User:  UserUseCase{repo: repo},
-		Order: OrderUseCase{repo: repo},
+		User: UserUseCase{repo: repo},
+		//Order: OrderUseCase{repo: repo},
+		Order: NewOrderUseCase(repo, done, asAdr),
 	}
 }
 
 func (u UseCases) CloseRepo() {
 	u.User.repo.Close()
-	//u.Order.repo.Close()
+	u.Order.repo.Close()
 }

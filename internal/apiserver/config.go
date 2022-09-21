@@ -34,7 +34,7 @@ func NewConfig() Config {
 
 	addr := getVarValue(*flagHost, "RUN_ADDRESS", DefaultHost)
 	dbDSN := getVarValue(*flagDBDSN, "DATABASE_URI", DefaultDBDSN)
-	asAddr := getVarValue(*flagASAddr, "ACCRUAL_SYSTEM_ADDRESS", "")
+	asAddr := getVarValue(*flagASAddr, "ACCRUAL_SYSTEM_ADDRESS", "http://localhost:8080")
 
 	cfg := Config{
 		Addr:      addr,
