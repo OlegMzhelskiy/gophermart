@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/OlegMzhelskiy/gophermart/internal/models"
 	"github.com/OlegMzhelskiy/gophermart/internal/storage"
+	"github.com/OlegMzhelskiy/gophermart/pkg"
 	"log"
 	"net/http"
 	"time"
@@ -45,13 +46,12 @@ func NewOrderUseCase(repo storage.Repository, done chan struct{}, asAdr string) 
 }
 
 func (u OrderUseCase) UploadOrder(order models.Order) error {
-	if order.Number == "" {
-		return ErrInvalidOrderNumber
-	}
-	// TODO: проверка номера алгоритмом Луна
-	//if order.Number == "" || !pkg.CheckLuna(order.Number) {
+	//if order.Number == "" {
 	//	return ErrInvalidOrderNumber
 	//}
+	if order.Number == "" || !pkg.CheckLuna(order.Number) {
+		return ErrInvalidOrderNumber
+	}
 	//_, err := u.repo.GetOrderByNumber(order.Number)
 	orderDB, err := u.repo.GetOrderByNumber(order.Number)
 	if err != nil && err != storage.ErrOrderNotFound {

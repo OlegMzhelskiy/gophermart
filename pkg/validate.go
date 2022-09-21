@@ -1,17 +1,17 @@
 package pkg
 
 import (
-	"fmt"
+	"github.com/OlegMzhelskiy/gophermart/internal/models"
 	"strconv"
 )
 
-func CheckLuna(num string) bool {
+func CheckLuna(num models.OrderNumber) bool {
 	var sum int
 	var n int
 	var err error
 	lenNum := len(num)
 	even := lenNum % 2
-	fmt.Printf("len num: %d\n", lenNum)
+	//fmt.Printf("len num: %d\n", lenNum)
 	for i, s := range num {
 		n, err = strconv.Atoi(string(s))
 		if err != nil {
