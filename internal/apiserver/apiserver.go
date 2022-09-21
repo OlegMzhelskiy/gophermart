@@ -122,6 +122,7 @@ func (s *APIServer) respondJSON(w http.ResponseWriter, r *http.Request, code int
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("marshal error: %w", err))
 		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(code)
 		io.WriteString(w, string(jsonData))
 	} else {

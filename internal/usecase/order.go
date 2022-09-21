@@ -36,7 +36,7 @@ func NewOrderUseCase(repo storage.Repository, done chan struct{}, asAdr string) 
 	var err error
 	u.ProcessingOrders, err = u.repo.GetOrdersWithStatus(models.OrderStatusProcessing, models.OrderStatusNew)
 	if err != nil {
-		// log
+		log.Printf("get order with status failed: %s", err)
 	}
 
 	go u.WorkerGettingOrderStatus(done)
@@ -129,7 +129,9 @@ func GetOrderStatusFromAccrual(number models.OrderNumber, accrualSysAdr string) 
 	if res.StatusCode != 200 {
 		return request, errors.New("error to request accrual system: " + res.Status)
 	}
-	if err = json.NewDecoder(res.Body).Decode(&request); err != nil {
+	err = json.NewDecoder(res.Body).Decode(&request)
+	defer res.Body.Close()
+	if err != nil {
 		//resBody, err := io.ReadAll(body)
 		log.Printf("error to request accrual system: %s", err)
 		return request, err
