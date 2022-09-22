@@ -64,7 +64,7 @@ func newStore(databaseURL string) (*Store, error) {
 	    sum NUMERIC DEFAULT 0,
 	    user_id INTEGER NOT NULL,
 	    uploaded_at TIMESTAMPTZ,
-	    updated_at TIMESTAMPTZ);
+	    updated_at TIMESTAMPTZ DEFAULT '0001-01-01 00:00:00 +0000');
 	CREATE TABLE IF NOT EXISTS withdrawals(
 	    order_number TEXT PRIMARY KEY NOT NULL,
 	    sum NUMERIC DEFAULT 0,
@@ -204,7 +204,7 @@ func (s *Store) CreateOrder(order models.Order) error {
 
 func (s *Store) GetOrderListByUserID(userID string) ([]models.Order, error) {
 	orderList := []models.Order{}
-	err := s.db.Select(&orderList, "SELECT user_id, number, status, sum, uploaded_at FROM orders WHERE user_id=$1 ORDER BY uploaded_at ASC", userID)
+	err := s.db.Select(&orderList, "SELECT * FROM orders WHERE user_id=$1 ORDER BY uploaded_at ASC", userID)
 	if err != nil && err != sql.ErrNoRows {
 		return orderList, err
 	} else {

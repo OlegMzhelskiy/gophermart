@@ -6,6 +6,8 @@ import (
 )
 
 func CheckLuna(num models.OrderNumber) bool {
+	//return CalculateLuhn(num)
+
 	var sum int
 	var n int
 	var err error
@@ -30,12 +32,45 @@ func CheckLuna(num models.OrderNumber) bool {
 	check := sum % 10
 	//fmt.Printf("\nsum: %d\n", sum)
 	//fmt.Printf("check: %d\n", check)
-	if lenNum%2 == 0 {
-		if check == 0 {
-			return true
-		}
-	} else {
-		return check == n
+	//if lenNum%2 == 0 {
+	//	if check == 0 {
+	//		return true
+	//	}
+	//} else {
+	//	return check == n
+	//}
+	//return false
+	return check == 0
+}
+
+func CalculateLuhn(num models.OrderNumber) bool {
+	number, err := strconv.Atoi(string(num))
+	if err != nil {
+		return false
 	}
-	return false
+	checkNumber := checksum(number)
+	return checkNumber == 0
+	//if checkNumber == 0 {
+	//	return 0
+	//}
+	//return 10 - checkNumber
+}
+
+func checksum(number int) int {
+	var luhn int
+
+	for i := 0; number > 0; i++ {
+		cur := number % 10
+
+		if i%2 == 0 { // even
+			cur = cur * 2
+			if cur > 9 {
+				cur = cur%10 + cur/10
+			}
+		}
+
+		luhn += cur
+		number = number / 10
+	}
+	return luhn % 10
 }
