@@ -39,15 +39,7 @@ type Logger struct {
 }
 
 func NewLogger(production bool) Loggerer {
-	//logger := logrus.New()
-	//logger.Formatter = &logrus.JSONFormatter{}
-	//
-	//// Use logrus for standard log output
-	//// Note that `log` here references stdlib's log
-	//// Not logrus imported under the name `log`.
-	//log.SetOutput(logger.Writer())
-
-	var log = logrus.New()
+	log := logrus.New()
 	log.Formatter = new(logrus.TextFormatter) //default
 	if production {
 		log.Level = logrus.ErrorLevel
@@ -56,9 +48,7 @@ func NewLogger(production bool) Loggerer {
 		log.Formatter.(*logrus.TextFormatter).DisableTimestamp = true // remove timestamp from test output
 	}
 	log.Formatter.(*logrus.TextFormatter).DisableColors = false // remove colors
-
 	log.Out = os.Stdout
-
 	return &Logger{logger: log}
 }
 

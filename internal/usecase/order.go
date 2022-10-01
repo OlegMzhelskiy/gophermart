@@ -47,13 +47,9 @@ func NewOrderUseCase(repo storage.Repository, done chan struct{}, asAdr string) 
 }
 
 func (u OrderUseCase) UploadOrder(order models.Order) error {
-	//if order.Number == "" {
-	//	return ErrInvalidOrderNumber
-	//}
 	if order.Number == "" || !pkg.CheckLuna(order.Number) {
 		return ErrInvalidOrderNumber
 	}
-	//_, err := u.repo.GetOrderByNumber(order.Number)
 	orderDB, err := u.repo.GetOrderByNumber(order.Number)
 	if err != nil && err != storage.ErrOrderNotFound {
 		return fmt.Errorf("get order by number failed: %w", err)
@@ -110,8 +106,6 @@ func (u OrderUseCase) Withdraw(userID string, withdraw models.WithdrawRequest) e
 		}
 		return fmt.Errorf("create withdraw failed: %w", err)
 	}
-	//TODO:
-	//	(нужно блокировать баланс на момент списания чтобы исключить одновременное списание 2 хендлерами)
 	return nil
 }
 
@@ -129,7 +123,6 @@ func GetOrderStatusFromAccrual(number models.OrderNumber, accrualSysAdr string) 
 	err = json.NewDecoder(res.Body).Decode(&request)
 	defer res.Body.Close()
 	if err != nil {
-		//resBody, err := io.ReadAll(body)
 		log.Printf("error to request accrual system: %s", err)
 		return request, err
 	}
@@ -167,7 +160,6 @@ func (u *OrderUseCase) UpdateOrderInfoFromAccrual(number models.OrderNumber) (bo
 }
 
 func (u *OrderUseCase) WorkerGettingOrderStatus(done chan struct{}) {
-	//var number models.OrderNumber
 	ticker := time.NewTicker(time.Minute)
 	for {
 		select {

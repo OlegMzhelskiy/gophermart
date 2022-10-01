@@ -64,16 +64,6 @@ func (s *APIServer) StopTestServer() {
 	defer s.useCase.CloseRepo()
 }
 
-//func TestAPIServer_registerUser(t *testing.T) {
-//	body := `{"login": "user1","password": "qwerty123"}`
-//	request, _ := http.NewRequest(http.MethodPost, baseURL+"/api/user/register", bytes.NewBuffer([]byte(body)))
-//	rec := httptest.NewRecorder()
-//	srv := NewTestServer()
-//	defer srv.StopTestServer()
-//	srv.ServeHTTP(rec, request)
-//	assert.Equal(t, rec.Code, http.StatusCreated)
-//}
-
 func TestAPIServer_registerUser(t *testing.T) {
 	srv := NewTestServer()
 	defer srv.StopTestServer()
@@ -115,7 +105,6 @@ func TestAPIServer_registerUser(t *testing.T) {
 
 			srv.ServeHTTP(rec, request)
 			assert.Equal(t, tt.expected.code, rec.Code)
-			//s.registerUser(tt.args.w, tt.args.r)
 		})
 	}
 }

@@ -42,20 +42,6 @@ func TestStore_CreateUser(t *testing.T) {
 			wantErr: false,
 			//wantErr: nil,
 		},
-		//{
-		//	name: "invalid: short password",
-		//	args: args{login: "user2",
-		//		encryptedPas: "qwer"},
-		//	wantErr: true,
-		//	//wantErr: usecase.ErrPasswordTooShort,
-		//},
-		//{
-		//	name: "invalid: empty login",
-		//	args: args{login: "",
-		//		encryptedPas: "qwerty"},
-		//	wantErr: true,
-		//	//wantErr: usecase.ErrLoginIsEmpty,
-		//},
 		{
 			name: "invalid: already exists",
 			args: args{login: "user1",
@@ -64,15 +50,9 @@ func TestStore_CreateUser(t *testing.T) {
 			//wantErr: nil,
 		},
 	}
-	//s := &Store{databaseURL: DatabaseTestURL}
-	//s, err := newStore(DatabaseTestURL)
 
 	s, teardown := TestStore(t)
 	defer teardown("users")
-
-	//defer s.Close()
-	//defer teardown(t, s, "users")
-	//assert.NoError(t, err)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

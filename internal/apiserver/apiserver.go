@@ -31,9 +31,8 @@ type APIServer struct {
 	addr    string
 	router  *chi.Mux
 	useCase usecase.UseCases
-	//store   storage.Repository
-	done   chan struct{}
-	logger logging.Loggerer
+	done    chan struct{}
+	logger  logging.Loggerer
 }
 
 func NewServer(cfg Config) *APIServer {
@@ -46,9 +45,6 @@ func NewServer(cfg Config) *APIServer {
 		logger:  cfg.Logger,
 	}
 	srv.configureRouter()
-
-	//uc.Order.RunWorkerGettingOrderStatus()
-
 	return srv
 }
 
@@ -58,9 +54,6 @@ func (s *APIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Run starting api server
 func (s *APIServer) Run() error {
-	//if err := s.ConfigurateServer(); err != nil {
-	//	return err
-	//}
 	//defer s.store.Close()
 	s.logger.Info("Start server on ", s.addr)
 	return http.ListenAndServe(s.addr, s.router)
@@ -74,19 +67,8 @@ func (s *APIServer) Stop() {
 
 func (s *APIServer) ConfigurateServer() error {
 	s.configureRouter()
-	//if err := s.configureStore(); err != nil {
-	//	return err
-	//}
 	return nil
 }
-
-//func (s *APIServer) configureStore() error {
-//	//store := storage.NewStore(s.config.storeCfg)
-//	if err := s.store.Open(); err != nil {
-//		return err
-//	}
-//	return nil
-//}
 
 func (s *APIServer) configureRouter() {
 	s.router = chi.NewRouter()
@@ -144,13 +126,11 @@ func (s *APIServer) respond(w http.ResponseWriter, r *http.Request, code int, da
 
 func (s *APIServer) error(w http.ResponseWriter, r *http.Request, code int, err error) {
 	s.respond(w, r, code, map[string]string{"error": err.Error()})
-	//s.logger.Error(fmt.Errorf("handler error: %w", err), r.Method, r.URL)
 }
 
 func (s *APIServer) errorLog(w http.ResponseWriter, r *http.Request, code int, err error) {
 	s.error(w, r, code, err)
 	reqID, _ := r.Context().Value(middleware.RequestIDKey).(string)
-	//s.logger.Error(fmt.Errorf("handler error: %w", err), r.Method, r.RequestURI, reqID)
 	s.logger.LogWithFields(logging.ErrorLevel, "handler error:", logging.Fields{
 		"requestID":   reqID,
 		"requestURI":  r.RequestURI,
@@ -208,13 +188,6 @@ func (s *APIServer) AuthUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//token, err := s.useCase.User.GenerateToken(user)
-	//if err != nil {
-	//	s.error(w, r, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//respToken := map[string]string{"token": token}
-	//s.respond(w, r, http.StatusOK, respToken)
 	s.respondGeneratedToken(w, r, user)
 }
 
@@ -238,12 +211,6 @@ func (s *APIServer) authenticateUser(next http.Handler) http.Handler {
 			s.error(w, r, http.StatusUnauthorized, errors.New("auth header is empty"))
 			return
 		}
-		//ms := strings.Split(auth, " ")
-		//if len(ms) != 2 || (len(ms) == 2 && (ms[0] != "Bearer" || ms[1] == "")) {
-		//	s.error(w, r, http.StatusUnauthorized, errors.New("invalid auth header"))
-		//	return
-		//}
-		//token := ms[1]
 		token := strings.Replace(auth, "Bearer ", "", 1)
 		valid, claims, err := s.useCase.User.ParseToken(token)
 		if err != nil {
@@ -267,7 +234,6 @@ func (s *APIServer) getUserID(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
-	//if err := json.NewDecoder(r.Body).Decode(&orderNumber); err != nil {
 	if err != nil {
 		s.errorLog(w, r, http.StatusBadRequest, err)
 		return

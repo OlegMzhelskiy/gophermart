@@ -17,10 +17,6 @@ import (
 	"github.com/OlegMzhelskiy/gophermart/internal/models"
 )
 
-//type Config struct {
-//	databaseURL string
-//}
-
 var DatabaseTestURL string
 
 type Store struct {
@@ -307,39 +303,3 @@ func (s *Store) UpdateOrder(ord models.Order) error {
 	}
 	return nil
 }
-
-//func (s *Store) GetBalanceUser(user models.User) (models.UserBalance, error) {
-//	ub := models.UserBalance{}
-//	bal, err := s.GetAccrualSumByUserID(user.ID)
-//	if err != nil {
-//
-//		return ub, err
-//	}
-//	//wit := s.GetWithdrawSumByUserID(user.ID)
-//	ub.Balance = bal
-//	return ub, nil
-//}
-//
-//func (s *Store) GetAccrualSumByUserID(userID string) (models.SumScore, error) {
-//	var sum models.SumScore
-//	err := s.db.Get(&sum, "SELECT SUM(sum) AS s FROM orders WHERE user_id=$1", userID)
-//	if err != nil {
-//		if err == sql.ErrNoRows {
-//			return 0, nil
-//		}
-//		return -1, err
-//	}
-//	return sum, nil
-//}
-//
-//func (s *Store) GetWithdrawSumByUserID(userID string) (models.SumScore, error) {
-//	var sum models.SumScore
-//	err := s.db.Get(&sum, "SELECT SUM(sum) AS s FROM withdrawals WHERE user_id=$1", userID)
-//	if err != nil {
-//		if err == sql.ErrNoRows {
-//			return 0, nil
-//		}
-//		return -1, err
-//	}
-//	return sum, nil
-//}
