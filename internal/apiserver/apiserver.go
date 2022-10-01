@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/OlegMzhelskiy/gophermart/pkg/logging"
 	"io"
-	"log"
+	//"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-
 	"github.com/OlegMzhelskiy/gophermart/internal/models"
 	"github.com/OlegMzhelskiy/gophermart/internal/usecase"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type ctxKey string
@@ -32,7 +32,8 @@ type APIServer struct {
 	router  *chi.Mux
 	useCase usecase.UseCases
 	//store   storage.Repository
-	done chan struct{}
+	done   chan struct{}
+	logger logging.Loggerer
 }
 
 func NewServer(cfg Config) *APIServer {
@@ -42,6 +43,7 @@ func NewServer(cfg Config) *APIServer {
 		addr:    cfg.Addr,
 		useCase: *uc,
 		done:    done,
+		logger:  cfg.Logger,
 	}
 	srv.configureRouter()
 
@@ -60,7 +62,7 @@ func (s *APIServer) Run() error {
 	//	return err
 	//}
 	//defer s.store.Close()
-
+	s.logger.Info("Start server on ", s.addr)
 	return http.ListenAndServe(s.addr, s.router)
 }
 
@@ -120,7 +122,7 @@ func (s *APIServer) respondJSON(w http.ResponseWriter, r *http.Request, code int
 	if data != nil {
 		jsonData, err := json.MarshalIndent(data, "", "  ")
 		if err != nil {
-			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("marshal error: %w", err))
+			s.errorLog(w, r, http.StatusInternalServerError, fmt.Errorf("marshal error: %w", err))
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(code)
@@ -142,7 +144,19 @@ func (s *APIServer) respond(w http.ResponseWriter, r *http.Request, code int, da
 
 func (s *APIServer) error(w http.ResponseWriter, r *http.Request, code int, err error) {
 	s.respond(w, r, code, map[string]string{"error": err.Error()})
-	log.Printf("handler error: %s", err.Error())
+	//s.logger.Error(fmt.Errorf("handler error: %w", err), r.Method, r.URL)
+}
+
+func (s *APIServer) errorLog(w http.ResponseWriter, r *http.Request, code int, err error) {
+	s.error(w, r, code, err)
+	reqID, _ := r.Context().Value(middleware.RequestIDKey).(string)
+	//s.logger.Error(fmt.Errorf("handler error: %w", err), r.Method, r.RequestURI, reqID)
+	s.logger.LogWithFields(logging.ErrorLevel, "handler error:", logging.Fields{
+		"requestID":   reqID,
+		"requestURI":  r.RequestURI,
+		"method":      r.Method,
+		"description": err.Error(),
+	})
 }
 
 func (s *APIServer) handlerF(w http.ResponseWriter, r *http.Request) {
@@ -157,18 +171,20 @@ type requestAuth struct {
 func (s *APIServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	request := &requestAuth{}
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		s.error(w, r, http.StatusBadRequest, err)
+		s.errorLog(w, r, http.StatusBadRequest, err)
 		return
 	}
 	user := models.User{Login: request.Login, Password: request.Password}
 	err := s.useCase.User.CreateUser(&user)
 	if err != nil {
 		if errors.Is(err, usecase.ErrLoginAlreadyExists) {
-			s.error(w, r, http.StatusConflict, err)
-		} else if errors.Is(err, usecase.ErrLoginIsEmpty) || errors.Is(err, usecase.ErrPasswordTooShort) {
-			s.error(w, r, http.StatusBadRequest, err)
+			s.error(w, r, http.StatusConflict, usecase.ErrLoginAlreadyExists)
+		} else if errors.Is(err, usecase.ErrLoginIsEmpty) {
+			s.error(w, r, http.StatusBadRequest, usecase.ErrLoginIsEmpty)
+		} else if errors.Is(err, usecase.ErrPasswordTooShort) {
+			s.error(w, r, http.StatusBadRequest, usecase.ErrPasswordTooShort)
 		} else {
-			s.error(w, r, http.StatusInternalServerError, err)
+			s.errorLog(w, r, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -178,16 +194,16 @@ func (s *APIServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) AuthUser(w http.ResponseWriter, r *http.Request) {
 	request := &requestAuth{}
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		s.error(w, r, http.StatusBadRequest, err)
+		s.errorLog(w, r, http.StatusBadRequest, err)
 		return
 	}
 	user := models.User{Login: request.Login, Password: request.Password}
 	err := s.useCase.User.AuthUser(&user)
 	if err != nil {
 		if errors.Is(err, usecase.ErrInvalidLoginOrPassword) {
-			s.error(w, r, http.StatusUnauthorized, err)
+			s.error(w, r, http.StatusUnauthorized, usecase.ErrInvalidLoginOrPassword)
 		} else {
-			s.error(w, r, http.StatusInternalServerError, err)
+			s.errorLog(w, r, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -206,7 +222,7 @@ func (s *APIServer) AuthUser(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) respondGeneratedToken(w http.ResponseWriter, r *http.Request, user models.User) {
 	token, err := s.useCase.User.GenerateToken(user)
 	if err != nil {
-		s.error(w, r, http.StatusInternalServerError, err)
+		s.errorLog(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	w.Header().Set("Authorization", token)
@@ -253,7 +269,7 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	//if err := json.NewDecoder(r.Body).Decode(&orderNumber); err != nil {
 	if err != nil {
-		s.error(w, r, http.StatusBadRequest, err)
+		s.errorLog(w, r, http.StatusBadRequest, err)
 		return
 	}
 	if len(body) == 0 {
@@ -262,7 +278,7 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
-		s.error(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
+		s.errorLog(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
 		return
 	}
 	order := models.Order{
@@ -272,13 +288,13 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.useCase.Order.UploadOrder(order); err != nil {
 		if errors.Is(err, usecase.ErrOrderAlreadyUploadAnotherUser) {
-			s.error(w, r, http.StatusConflict, err)
+			s.error(w, r, http.StatusConflict, usecase.ErrOrderAlreadyUploadAnotherUser)
 		} else if errors.Is(err, usecase.ErrOrderAlreadyUploadThisUser) {
-			s.error(w, r, http.StatusOK, err)
+			s.error(w, r, http.StatusOK, usecase.ErrOrderAlreadyUploadThisUser)
 		} else if errors.Is(err, usecase.ErrInvalidOrderNumber) {
-			s.error(w, r, http.StatusUnprocessableEntity, err)
+			s.error(w, r, http.StatusUnprocessableEntity, usecase.ErrInvalidOrderNumber)
 		} else {
-			s.error(w, r, http.StatusInternalServerError, err)
+			s.errorLog(w, r, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -288,12 +304,12 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) GetOrderList(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
-		s.error(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
+		s.errorLog(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
 		return
 	}
 	list, err := s.useCase.Order.GetOrderList(userID)
 	if err != nil {
-		s.error(w, r, http.StatusInternalServerError, fmt.Errorf("get list order failed: %w", err))
+		s.errorLog(w, r, http.StatusInternalServerError, fmt.Errorf("get list order failed: %w", err))
 	} else if len(list) == 0 {
 		s.respond(w, r, http.StatusNoContent, list)
 	} else {
@@ -302,14 +318,15 @@ func (s *APIServer) GetOrderList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) GetBalance(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(ctxKeyUserID).(string)
+	ctx := r.Context()
+	userID, ok := ctx.Value(ctxKeyUserID).(string)
 	if !ok {
-		s.error(w, r, http.StatusBadRequest, errors.New("invalid type user ID"))
+		s.errorLog(w, r, http.StatusBadRequest, errors.New("invalid type user ID"))
 		return
 	}
 	userBal, err := s.useCase.User.GetUserBalanceAndWithdrawals(userID)
 	if err != nil {
-		s.error(w, r, http.StatusInternalServerError, errors.New("internal server error"))
+		s.errorLog(w, r, http.StatusInternalServerError, errors.New("internal server error"))
 	} else {
 		s.respondJSON(w, r, http.StatusOK, userBal)
 	}
@@ -318,12 +335,12 @@ func (s *APIServer) GetBalance(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
-		s.error(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
+		s.errorLog(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
 		return
 	}
 	userWith, err := s.useCase.Order.GetWithdrawals(userID)
 	if err != nil {
-		s.error(w, r, http.StatusInternalServerError, errors.New("internal server error"))
+		s.errorLog(w, r, http.StatusInternalServerError, errors.New("internal server error"))
 	} else {
 		if len(userWith) == 0 {
 			s.respond(w, r, http.StatusNoContent, "there are no withdrawals")
@@ -336,24 +353,24 @@ func (s *APIServer) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) Withdraw(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
-		s.error(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
+		s.errorLog(w, r, http.StatusInternalServerError, errors.New("invalid type user ID"))
 		return
 	}
 	wReq := models.WithdrawRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&wReq); err != nil {
-		s.error(w, r, http.StatusBadRequest, errors.New("bad request"))
+		s.errorLog(w, r, http.StatusBadRequest, err) //errors.New("bad request"))
 		return
 	}
 	err := s.useCase.Order.Withdraw(userID, wReq)
 	if err != nil {
 		if errors.Is(err, usecase.ErrInvalidOrderNumber) {
-			s.error(w, r, http.StatusUnprocessableEntity, err)
+			s.error(w, r, http.StatusUnprocessableEntity, usecase.ErrInvalidOrderNumber)
 		} else if errors.Is(err, usecase.ErrNotEnoughFunds) {
-			s.error(w, r, http.StatusPaymentRequired, err)
+			s.error(w, r, http.StatusPaymentRequired, usecase.ErrNotEnoughFunds)
 		} else if errors.Is(err, usecase.ErrWithdrawAlreadyExist) {
-			s.error(w, r, http.StatusBadRequest, err)
+			s.error(w, r, http.StatusBadRequest, usecase.ErrWithdrawAlreadyExist)
 		} else {
-			s.error(w, r, http.StatusInternalServerError, errors.New("internal server error"))
+			s.errorLog(w, r, http.StatusInternalServerError, errors.New("internal server error"))
 		}
 		return
 	}

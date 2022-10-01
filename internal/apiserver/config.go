@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"flag"
+	"github.com/OlegMzhelskiy/gophermart/pkg/logging"
 	"os"
 	"strings"
 
@@ -13,12 +14,14 @@ type Config struct {
 	DBDSN     string
 	AcSysAddr string
 	Store     storage.Repository
+	Logger    logging.Loggerer
 }
 
 func NewConfig() Config {
 	flagHost := flag.String("a", "", "server address")
 	flagDBDSN := flag.String("d", "", "DB connection")
 	flagASAddr := flag.String("r", "", "accrual system address")
+	flagProd := flag.Bool("prod", false, "product logging mode")
 	flag.Parse()
 
 	if len(*flagHost) > 0 {
@@ -36,11 +39,14 @@ func NewConfig() Config {
 	dbDSN := getVarValue(*flagDBDSN, "DATABASE_URI", DefaultDBDSN)
 	asAddr := getVarValue(*flagASAddr, "ACCRUAL_SYSTEM_ADDRESS", "http://localhost:8080")
 
+	log := logging.NewLogger(*flagProd)
+
 	cfg := Config{
 		Addr:      addr,
 		DBDSN:     dbDSN,
 		AcSysAddr: asAddr,
 		//Store: store,
+		Logger: log,
 	}
 	return cfg
 }

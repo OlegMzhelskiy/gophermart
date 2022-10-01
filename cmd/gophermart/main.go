@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/OlegMzhelskiy/gophermart/internal/apiserver"
 	"github.com/OlegMzhelskiy/gophermart/internal/storage"
-	"log"
+	//"log"
 )
 
 func main() {
@@ -27,11 +27,15 @@ func main() {
 	//srv := apiserver.NewServer(cfg)
 	//log.Fatal(srv.Run())
 
-	log.Fatal(run())
+	cfg := apiserver.NewConfig()
+	err := run(cfg)
+	if err != nil {
+		cfg.Logger.Fatal("http-server failed", err)
+	}
 }
 
-func run() error {
-	cfg := apiserver.NewConfig()
+func run(cfg apiserver.Config) error {
+
 	store, err := storage.NewSQLStore(cfg.DBDSN)
 	if err != nil {
 		return fmt.Errorf("db connection error: %w", err)
@@ -44,7 +48,8 @@ func run() error {
 	//}
 	srv := apiserver.NewServer(cfg)
 	if err := srv.Run(); err != nil {
-		return fmt.Errorf("http-server failed: %w", err)
+		//return fmt.Errorf("http-server failed: %w", err)
+		return err
 	}
 	srv.Stop()
 	return nil

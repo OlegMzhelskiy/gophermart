@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/OlegMzhelskiy/gophermart/internal/models"
-	"github.com/OlegMzhelskiy/gophermart/internal/storage"
-	"github.com/OlegMzhelskiy/gophermart/pkg"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/OlegMzhelskiy/gophermart/internal/models"
+	"github.com/OlegMzhelskiy/gophermart/internal/storage"
+	"github.com/OlegMzhelskiy/gophermart/pkg"
 )
 
 var (
@@ -110,11 +111,7 @@ func (u OrderUseCase) Withdraw(userID string, withdraw models.WithdrawRequest) e
 		return fmt.Errorf("create withdraw failed: %w", err)
 	}
 	//TODO:
-	// проверка номера
-	// проверка суммы достаточной для списания
 	//	(нужно блокировать баланс на момент списания чтобы исключить одновременное списание 2 хендлерами)
-	// ...
-	// создание записи в БД
 	return nil
 }
 
