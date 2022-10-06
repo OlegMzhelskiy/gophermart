@@ -232,22 +232,6 @@ func (s *Store) GetWithdrawalsByUserID(userID string) (models.SumScore, error) {
 	return bal, nil
 }
 
-// не исп
-func (s *Store) GetBalanceAndWithdrawalsByUserID(userID string) (models.UserBalance, error) {
-	usBal := models.UserBalance{}
-	err := s.db.Get(&usBal, `SELECT SUM(q.balance), SUM(q.withdraw)
-    FROM (
-		SELECT sum AS balance, 0 AS withdraw FROM orders WHERE user_id=$1
-		UNION ALL 
-		SELECT -sum, sum FROM withdrawals WHERE user_id=$1
-		) AS q
-		`, userID)
-	if err != nil && err != sql.ErrNoRows {
-		return usBal, err
-	}
-	return usBal, nil
-}
-
 func (s *Store) GetWithdrawalsListByUserID(userID string) ([]models.OrderWithdraw, error) {
 	withdrawList := []models.OrderWithdraw{}
 	err := s.db.Select(&withdrawList, `SELECT order_number, sum, processed_at FROM withdrawals WHERE user_id=$1 

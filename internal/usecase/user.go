@@ -43,7 +43,6 @@ func (u UserUseCase) CreateUser(user *models.User) error {
 		return ErrPasswordTooShort
 	}
 	//exist login
-	//exist, err := u.repo.UserExist(user.Login)
 	userBD, err := u.repo.GetUserByLogin(user.Login)
 	if err != nil && err != storage.ErrUserNotFound {
 		return fmt.Errorf("get user by id failed: %w", err)
@@ -64,7 +63,6 @@ func (u UserUseCase) CreateUser(user *models.User) error {
 }
 
 func (u UserUseCase) AuthUser(user *models.User) error {
-	//hp, err := u.repo.GetUserHashPassword(user.Login)
 	userBD, err := u.repo.GetUserByLogin(user.Login)
 	if err != nil {
 		return fmt.Errorf("getting user's password failed: %w", err)
@@ -77,7 +75,6 @@ func (u UserUseCase) AuthUser(user *models.User) error {
 }
 
 func (u UserUseCase) GetUserBalanceAndWithdrawals(userID string) (models.UserBalance, error) {
-	//userBal, err := u.repo.GetBalanceAndWithdrawalsByUserID(userID)
 	userBal := models.UserBalance{}
 	bal, err := u.repo.GetBalanceByUserID(userID)
 	if err != nil {

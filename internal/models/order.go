@@ -51,9 +51,3 @@ type WithdrawRequest struct {
 	OrderNumber string   `json:"order"`
 	Sum         SumScore `json:"sum"`
 }
-
-type AccrualRequest struct {
-	Order  string   `json:"order"`
-	Status string   `json:"status"`
-	Sum    SumScore `json:"accrual"`
-}

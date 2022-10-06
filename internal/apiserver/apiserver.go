@@ -27,7 +27,6 @@ var (
 )
 
 type APIServer struct {
-	//config *Config
 	addr    string
 	router  *chi.Mux
 	useCase usecase.UseCases
@@ -54,7 +53,6 @@ func (s *APIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Run starting api server
 func (s *APIServer) Run() error {
-	//defer s.store.Close()
 	s.logger.Info("Start server on ", s.addr)
 	return http.ListenAndServe(s.addr, s.router)
 }
@@ -62,6 +60,7 @@ func (s *APIServer) Run() error {
 func (s *APIServer) Stop() {
 	close(s.done)
 	s.useCase.CloseRepo()
+	s.logger.Info("server stopped")
 	time.Sleep(2 * time.Second)
 }
 

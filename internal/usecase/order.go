@@ -1,16 +1,15 @@
 package usecase
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/OlegMzhelskiy/gophermart/pkg/accrual"
+	"github.com/OlegMzhelskiy/gophermart/pkg/validate"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/OlegMzhelskiy/gophermart/internal/models"
 	"github.com/OlegMzhelskiy/gophermart/internal/storage"
-	"github.com/OlegMzhelskiy/gophermart/pkg"
 )
 
 var (
@@ -23,31 +22,31 @@ var (
 
 type OrderUseCase struct {
 	repo             storage.Repository
-	ProcessingOrders []models.OrderNumber
+	processingOrders []models.OrderNumber
 	chProcOrder      chan models.OrderNumber
-	accrualSysAdr    string
+	accrual          accrual.Accrualer
 }
 
 func NewOrderUseCase(repo storage.Repository, done chan struct{}, asAdr string) OrderUseCase {
 	u := OrderUseCase{
-		repo:          repo,
-		chProcOrder:   make(chan models.OrderNumber, 100),
-		accrualSysAdr: asAdr,
+		repo:        repo,
+		chProcOrder: make(chan models.OrderNumber, 100),
+		accrual:     accrual.NewSystem(asAdr),
 	}
 
 	var err error
-	u.ProcessingOrders, err = u.repo.GetOrdersWithStatus(models.OrderStatusProcessing, models.OrderStatusNew)
+	u.processingOrders, err = u.repo.GetOrdersWithStatus(models.OrderStatusProcessing, models.OrderStatusNew)
 	if err != nil {
 		log.Printf("get order with status failed: %s", err)
 	}
 
-	go u.WorkerGettingOrderStatus(done)
+	go u.workerGettingOrderStatus(done)
 
 	return u
 }
 
 func (u OrderUseCase) UploadOrder(order models.Order) error {
-	if order.Number == "" || !pkg.CheckLuna(order.Number) {
+	if order.Number == "" || !validate.CheckLuna(order.Number) {
 		return ErrInvalidOrderNumber
 	}
 	orderDB, err := u.repo.GetOrderByNumber(order.Number)
@@ -109,29 +108,9 @@ func (u OrderUseCase) Withdraw(userID string, withdraw models.WithdrawRequest) e
 	return nil
 }
 
-func GetOrderStatusFromAccrual(number models.OrderNumber, accrualSysAdr string) (models.AccrualRequest, error) {
-	request := models.AccrualRequest{}
-	//req, err := http.NewRequest("POST", , nil)
-	res, err := http.Get(fmt.Sprintf("%s/api/orders/%s", accrualSysAdr, number))
-	if err != nil {
-		log.Printf("error to request accrual system: %s", err)
-		return request, err
-	}
-	if res.StatusCode != 200 {
-		return request, errors.New("error to request accrual system: " + res.Status)
-	}
-	err = json.NewDecoder(res.Body).Decode(&request)
-	defer res.Body.Close()
-	if err != nil {
-		log.Printf("error to request accrual system: %s", err)
-		return request, err
-	}
-	return request, nil
-}
-
 // UpdateOrderInfoFromAccrual return (isCalculated, error)
 func (u *OrderUseCase) UpdateOrderInfoFromAccrual(number models.OrderNumber) (bool, error) {
-	req, err := GetOrderStatusFromAccrual(number, u.accrualSysAdr)
+	req, err := u.accrual.GetOrderStatus(number)
 	if err != nil {
 		return false, err
 	}
@@ -159,7 +138,7 @@ func (u *OrderUseCase) UpdateOrderInfoFromAccrual(number models.OrderNumber) (bo
 	return false, nil
 }
 
-func (u *OrderUseCase) WorkerGettingOrderStatus(done chan struct{}) {
+func (u *OrderUseCase) workerGettingOrderStatus(done chan struct{}) {
 	ticker := time.NewTicker(time.Minute)
 	for {
 		select {
@@ -167,14 +146,17 @@ func (u *OrderUseCase) WorkerGettingOrderStatus(done chan struct{}) {
 			fmt.Println("quit goroutine getting order status")
 			return
 		case <-ticker.C:
-			for i, v := range u.ProcessingOrders {
+			for i, v := range u.processingOrders {
 				isCalc, err := u.UpdateOrderInfoFromAccrual(v)
 				if err == nil && isCalc {
-					u.ProcessingOrders = append(u.ProcessingOrders[:i], u.ProcessingOrders[i+1:]...) //remove from queue
+					u.processingOrders = append(u.processingOrders[:i], u.processingOrders[i+1:]...) //remove from queue
 				}
 			}
-		case number := <-u.chProcOrder:
-			u.ProcessingOrders = append(u.ProcessingOrders, number) //add to queue
+		case number, ok := <-u.chProcOrder:
+			if !ok {
+				return
+			}
+			u.processingOrders = append(u.processingOrders, number) //add to queue
 		}
 	}
 }
