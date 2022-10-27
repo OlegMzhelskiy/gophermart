@@ -35,6 +35,7 @@ type APIServer struct {
 	useCase usecase.UseCases
 	done    chan struct{}
 	logger  logging.Loggerer
+	prod    bool
 }
 
 func NewServer(cfg Config) *APIServer {
@@ -45,6 +46,7 @@ func NewServer(cfg Config) *APIServer {
 		useCase: *uc,
 		done:    done,
 		logger:  cfg.Logger,
+		prod:    cfg.Prod,
 	}
 	srv.configureRouter()
 	return srv
@@ -85,8 +87,10 @@ func (s *APIServer) configureRouter() {
 	s.router.Post("/api/user/register", s.RegisterUser)
 	s.router.Post("/api/user/login", s.AuthUser)
 
-	s.router.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://"+s.addr+"/swagger/doc.json")))
+	if s.prod {
+		s.router.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("http://"+s.addr+"/swagger/doc.json")))
+	}
 
 	//routes for "api" resource
 	s.router.Route("/api/user", func(r chi.Router) {

@@ -15,6 +15,7 @@ type Config struct {
 	AcSysAddr string
 	Store     storage.Repository
 	Logger    logging.Loggerer
+	Prod      bool
 }
 
 func NewConfig() Config {
@@ -47,6 +48,7 @@ func NewConfig() Config {
 		AcSysAddr: asAddr,
 		//Store: store,
 		Logger: log,
+		Prod:   *flagProd,
 	}
 	return cfg
 }
