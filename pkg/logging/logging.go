@@ -48,6 +48,7 @@ func NewLogger(production bool) Loggerer {
 		log.Formatter.(*logrus.TextFormatter).DisableTimestamp = true // remove timestamp from test output
 	}
 	log.Formatter.(*logrus.TextFormatter).DisableColors = false // remove colors
+	log.Formatter.(*logrus.TextFormatter).ForceColors = true
 	log.Out = os.Stdout
 	return &Logger{logger: log}
 }

@@ -9,6 +9,18 @@ import (
 	"syscall"
 )
 
+// @title Gophermart
+// @version 1.0
+// @description API server for Gophermart app.
+// @termsOfService http://swagger.io/terms/
+
+// @host localhost:8088
+// @BasePath /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 func main() {
 	cfg := apiserver.NewConfig()
 	err := run(cfg)

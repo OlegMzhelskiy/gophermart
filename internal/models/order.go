@@ -21,11 +21,11 @@ const (
 type OrderNumber string
 
 type Order struct {
-	Number     OrderNumber `json:"number" db:"number"`
-	Status     OrderStatus `json:"status" db:"status"`
-	Accrual    SumScore    `json:"accrual,omitempty" db:"sum"`
+	Number     OrderNumber `json:"number" db:"number" example:"9278923470"`
+	Status     OrderStatus `json:"status" db:"status" example:"PROCESSED"`
+	Accrual    SumScore    `json:"accrual,omitempty" db:"sum" example:"500"`
 	UserID     string      `json:"-" db:"user_id"`
-	UploadedAt time.Time   `json:"uploaded_at" db:"uploaded_at"`
+	UploadedAt time.Time   `json:"uploaded_at" db:"uploaded_at" example:"2021-12-10T15:15:45+03:00"`
 	UpdatedAt  time.Time   `json:"-" db:"updated_at"`
 }
 
@@ -48,6 +48,6 @@ type OrderWithdraw struct {
 }
 
 type WithdrawRequest struct {
-	OrderNumber string   `json:"order"`
-	Sum         SumScore `json:"sum"`
+	OrderNumber string   `json:"order" example:"9278923470"`
+	Sum         SumScore `json:"sum" example:"125"`
 }

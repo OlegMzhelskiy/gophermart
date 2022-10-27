@@ -5,17 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/OlegMzhelskiy/gophermart/pkg/logging"
 	"io"
 	//"log"
 	"net/http"
 	"strings"
 	"time"
 
+	_ "github.com/OlegMzhelskiy/gophermart/docs"
 	"github.com/OlegMzhelskiy/gophermart/internal/models"
 	"github.com/OlegMzhelskiy/gophermart/internal/usecase"
+	"github.com/OlegMzhelskiy/gophermart/pkg/logging"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type ctxKey string
@@ -82,6 +85,9 @@ func (s *APIServer) configureRouter() {
 	s.router.Post("/api/user/register", s.RegisterUser)
 	s.router.Post("/api/user/login", s.AuthUser)
 
+	s.router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://"+s.addr+"/swagger/doc.json")))
+
 	//routes for "api" resource
 	s.router.Route("/api/user", func(r chi.Router) {
 		//r.With(s.authenticateUser).Get("/id", s.getUserID)
@@ -116,6 +122,8 @@ func (s *APIServer) respondJSON(w http.ResponseWriter, r *http.Request, code int
 func (s *APIServer) respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	if data != nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		//w.Header().Set("Access-Control-Allow-Origin", "*")
+		//w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 		w.WriteHeader(code)
 		json.NewEncoder(w).Encode(data)
 	} else {
@@ -147,6 +155,19 @@ type requestAuth struct {
 	Password string `json:"password"`
 }
 
+// RegisterUser
+// @Summary      RegisterUser
+// @Description  Register new user
+// @Tags         account
+// @Accept       json
+// @Produce      json
+// @Param        user body models.User true "login and password"
+// @Success      200  {object}  models.User
+// @Failure      400  {string}  string
+// @Failure      409  {object}  string
+// @Failure      500  {object}  string
+// @Header       200  {string}  Authorization     "token"
+// @Router       /api/user/register [post]
 func (s *APIServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	request := &requestAuth{}
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
@@ -170,6 +191,19 @@ func (s *APIServer) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	s.respondGeneratedToken(w, r, user)
 }
 
+// AuthUser
+// @Summary      AuthUser
+// @Description  Auth user
+// @Tags         account
+// @Accept       json
+// @Produce      json
+// @Param        user body models.User true "login and password"
+// @Success      200  {object}  string
+// @Failure      400  {object}  string
+// @Failure      401  {object}  string
+// @Failure      500  {object}  string
+// @Header       200  {string}  Authorization     "token"
+// @Router       /api/user/login [post]
 func (s *APIServer) AuthUser(w http.ResponseWriter, r *http.Request) {
 	request := &requestAuth{}
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
@@ -230,6 +264,22 @@ func (s *APIServer) getUserID(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, r, http.StatusOK, userID)
 }
 
+// UploadOrder
+// @Summary      UploadOrder
+// @Security ApiKeyAuth
+// @Description  Upload order
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Param        order_number body string true "uploading order number"
+// @Success      200  {object}  string
+// @Success      202  {object}  string
+// @Failure      400  {object}  string
+// @Failure      401  {object}  string
+// @Failure      409  {object}  string
+// @Failure      422  {object}  string
+// @Failure      500  {object}  string
+// @Router       /api/user/orders [post]
 func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -266,6 +316,18 @@ func (s *APIServer) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, r, http.StatusAccepted, nil)
 }
 
+// GetOrderList
+// @Summary      GetOrderList
+// @Security ApiKeyAuth
+// @Description  Return order list
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}  models.Order
+// @Success      204  {array}	string{}
+// @Failure      401  {object}  int
+// @Failure      500  {object}  int
+// @Router       /api/user/orders [get]
 func (s *APIServer) GetOrderList(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
@@ -282,6 +344,17 @@ func (s *APIServer) GetOrderList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetBalance
+// @Summary      GetBalance
+// @Security ApiKeyAuth
+// @Description  Return user's balance
+// @Tags         balance
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  models.UserBalance
+// @Failure      401  {object}  string
+// @Failure      500  {object}  string
+// @Router       /api/user/balance [get]
 func (s *APIServer) GetBalance(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, ok := ctx.Value(ctxKeyUserID).(string)
@@ -297,6 +370,18 @@ func (s *APIServer) GetBalance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetWithdrawals
+// @Summary      GetWithdrawals
+// @Security ApiKeyAuth
+// @Description  Getting information about withdrawal of funds
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  []models.OrderWithdraw
+// @Success      204  {object} 	string
+// @Failure      401  {object}  string
+// @Failure      500  {object}  string
+// @Router       /api/user/withdrawals [get]
 func (s *APIServer) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
@@ -315,6 +400,20 @@ func (s *APIServer) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Withdraw
+// @Summary      Withdraw
+// @Security ApiKeyAuth
+// @Description  Request to debit funds
+// @Tags         balance
+// @Accept       json
+// @Produce      json
+// @Param    	param body models.WithdrawRequest true "order number and sum"
+// @Success      200  {object}  string
+// @Failure      401  {object}  string
+// @Failure      402  {object}  string
+// @Failure      422  {object}  string
+// @Failure      500  {object}  string
+// @Router       /api/user/balance/withdraw [post]
 func (s *APIServer) Withdraw(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ctxKeyUserID).(string)
 	if !ok {
